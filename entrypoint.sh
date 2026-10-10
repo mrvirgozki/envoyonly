@@ -1,0 +1,43 @@
+#!/bin/bash
+set -e
+
+# ============================================================
+# VIRGOZKI ENTRYPOINT SCRIPT (ENVOY ONLY)
+# ============================================================
+
+PORT="${PORT:-8080}"
+BIND_ADDR="${BIND_ADDR:-0.0.0.0}"
+
+echo "[ENTRYPOINT] Initializing VIRGOZKI Envoy-only service..."
+echo "[ENTRYPOINT] Target PORT: ${PORT}"
+echo "[ENTRYPOINT] Target BIND_ADDR: ${BIND_ADDR}"
+
+# Ensure runtime directories exist
+mkdir -p /var/log/xray \
+         /tmp/virgozki \
+         /tmp/virgozki-logs
+
+# Dynamically bind Envoy port if Cloud Run passes a custom PORT
+if [ -f /etc/envoy/envoy.yaml ]; then
+    sed -i "s/port_value: 8080/port_value: ${PORT}/g" /etc/envoy/envoy.yaml
+    sed -i "s/address: 0.0.0.0/address: ${BIND_ADDR}/g" /etc/envoy/envoy.yaml
+    echo "[ENTRYPOINT] Configured Envoy port to ${PORT}"
+fi
+
+# Validate core configurations at runtime
+echo "[ENTRYPOINT] Validating configurations..."
+
+/usr/local/bin/xray run -test -c /etc/xray/config.json >/dev/null 2>&1 || {
+    echo "[ENTRYPOINT ERROR] Xray configuration test failed!"
+    exit 1
+}
+
+/usr/local/bin/envoy --mode validate -c /etc/envoy/envoy.yaml >/dev/null 2>&1 || {
+    echo "[ENTRYPOINT ERROR] Envoy configuration test failed!"
+    exit 1
+}
+
+echo "[ENTRYPOINT] All service configurations validated successfully!"
+
+# Hand off execution to Tini / Supervisord
+exec "$@"
