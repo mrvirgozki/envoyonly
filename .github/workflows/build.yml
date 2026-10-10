@@ -30,4 +30,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: mrvirgozki/envoyonly:latest
+          tags: mrvirgozki/envoy:latest
