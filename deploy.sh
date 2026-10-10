@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# VIRGOZKI PANEL • MANUAL REGION SELECT ONLY • ENVOY-ONLY + gRPC
+# VIRGOZKI PANEL • MANUAL REGION SELECT ONLY • DOCKER HUB DEPLOYMENT
 # ==============================================================================
 
 BOLD='\033[1m'; RESET='\033[0m'
@@ -58,9 +58,9 @@ loading() {
 
 clear
 echo ""
-echo -e "  ${BOLD}${WHITE}VIRGOZKI PANEL (ENVOY + gRPC OPTIMIZED)${RESET}"
+echo -e "  ${BOLD}${WHITE}VIRGOZKI PANEL (DOCKER HUB TO CLOUD RUN)${RESET}"
 echo -e "  ${MAGENTA}MADE BY VIRGOZKI${RESET}"
-echo -e "  ${GREEN}✅ MANUAL SELECT • ENVOY • STREAM-ONE • gRPC${RESET}"
+echo -e "  ${GREEN}✅ BYPASS CLOUD BUILD • USING DOCKER HUB IMAGE${RESET}"
 echo ""
 
 PROJECT_ID=$(gcloud config get-value project 2>/dev/null | tr -d '[:space:]')
@@ -145,27 +145,18 @@ case "$MODE_CHOICE" in
 esac
 
 echo ""
-loading "CHECKING REQUIRED FILES"
-for f in config.json envoy.yaml Dockerfile index.html; do
-    if [ ! -f "$f" ]; then
-        echo -e "  ${RED}ERROR: Missing file -> $f${RESET}"
-        exit 1
-    fi
-done
+loading "DEPLOYING DIRECTLY FROM DOCKER HUB TO CLOUD RUN IN ${REGION}"
 
-loading "BUILDING CONTAINER IMAGE"
-gcloud builds submit --tag "gcr.io/${PROJECT_ID}/${SERVICE_NAME}" --project="$PROJECT_ID" --quiet > build.log 2>&1
-
-if [ $? -ne 0 ]; then 
-    echo -e "  ${RED}❌ BUILD FAILED. CHECK LOGS BELOW:${RESET}"
-    tail -n 15 build.log
-    rm -f build.log
-    exit 1
-fi
-
-loading "DEPLOYING TO CLOUD RUN IN ${REGION}"
+# DITO NA DEDIRETSO KUNIN ANG IMAGE SA DOCKER HUB KAHIT WALANG CLOUD BUILD
+gcloud run services update "$SERVICE_NAME" \
+  --image "docker.io/mrvirgozki/envoyonly:latest" \
+  --region "$REGION" \
+  --cpu "$CPU" --memory "$RAM" --port 8080 \
+  --concurrency 800 --timeout 3600 \
+  --min-instances 0 --max-instances "$MAX_INSTANCES" \
+  --allow-unauthenticated --project="$PROJECT_ID" --quiet 2>/dev/null || \
 gcloud run deploy "$SERVICE_NAME" \
-  --image "gcr.io/${PROJECT_ID}/${SERVICE_NAME}" \
+  --image "docker.io/mrvirgozki/envoyonly:latest" \
   --platform managed --region "$REGION" \
   --cpu "$CPU" --memory "$RAM" --port 8080 \
   --concurrency 800 --timeout 3600 \
@@ -175,7 +166,7 @@ gcloud run deploy "$SERVICE_NAME" \
 if [ $? -ne 0 ]; then 
     echo -e "  ${RED}❌ DEPLOYMENT FAILED. CHECK LOGS BELOW:${RESET}"
     tail -n 15 deploy.log
-    rm -f build.log deploy.log
+    rm -f deploy.log
     exit 1
 fi
 
@@ -185,7 +176,6 @@ CLEAN_HOST=$(echo "$SERVICE_URL" | sed 's|https://||')
 VMESS_UUID="b831381d-6324-4d53-ad4f-8cda48b30811"
 SS_B64=$(echo -n "aes-256-gcm:virgozki" | base64 -w0)
 
-# ✅ LINKS (WS, HU, XHTTP, gRPC)
 VLESS_WS="vless://${VMESS_UUID}@${CLEAN_HOST}:443?encryption=none&type=ws&path=/vless-virgozki&host=${CLEAN_HOST}&security=tls&sni=${CLEAN_HOST}&alpn=http/1.1&fp=chrome#VLESS-WS"
 VLESS_HU="vless://${VMESS_UUID}@${CLEAN_HOST}:443?encryption=none&type=httpupgrade&path=/vless-virgozki-hu&host=${CLEAN_HOST}&security=tls&sni=${CLEAN_HOST}&alpn=http/1.1&fp=chrome#VLESS-HU"
 VLESS_XHTTP="vless://${VMESS_UUID}@${CLEAN_HOST}:443?encryption=none&type=xhttp&path=/vless-virgozki-xhttp&host=${CLEAN_HOST}&security=tls&sni=${CLEAN_HOST}&mode=stream-one&alpn=h2,http/1.1&fp=chrome#VLESS-XHTTP"
@@ -193,40 +183,23 @@ VLESS_GRPC="vless://${VMESS_UUID}@${CLEAN_HOST}:443?encryption=none&type=grpc&se
 
 VMESS_WS_JSON='{"v":"2","ps":"VMESS-WS-virgozki","add":"'"${CLEAN_HOST}"'","port":"443","id":"'"${VMESS_UUID}"'","aid":"0","scy":"auto","net":"ws","type":"none","host":"'"${CLEAN_HOST}"'","path":"/vmess-virgozki","tls":"tls","sni":"'"${CLEAN_HOST}"'","fp":"chrome","alpn":"http/1.1"}'
 VMESS_WS_B64=$(echo -n "$VMESS_WS_JSON" | base64 -w0)
-VMESS_HU_JSON='{"v":"2","ps":"VMESS-HU-virgozki","add":"'"${CLEAN_HOST}"'","port":"443","id":"'"${VMESS_UUID}"'","aid":"0","scy":"auto","net":"httpupgrade","type":"none","host":"'"${CLEAN_HOST}"'","path":"/vmess-virgozki-hu","tls":"tls","sni":"'"${CLEAN_HOST}"'","fp":"chrome","alpn":"http/1.1"}'
-VMESS_HU_B64=$(echo -n "$VMESS_HU_JSON" | base64 -w0)
 VMESS_XHTTP_JSON='{"v":"2","ps":"VMESS-XHTTP-virgozki","add":"'"${CLEAN_HOST}"'","port":"443","id":"'"${VMESS_UUID}"'","aid":"0","scy":"auto","net":"xhttp","type":"none","host":"'"${CLEAN_HOST}"'","path":"/vmess-virgozki-xhttp","tls":"tls","sni":"'"${CLEAN_HOST}"'","fp":"chrome","alpn":"h2,http/1.1","mode":"stream-one"}'
 VMESS_XHTTP_B64=$(echo -n "$VMESS_XHTTP_JSON" | base64 -w0)
 VMESS_GRPC_JSON='{"v":"2","ps":"VMESS-GRPC-virgozki","add":"'"${CLEAN_HOST}"'","port":"443","id":"'"${VMESS_UUID}"'","aid":"0","scy":"auto","net":"grpc","type":"none","host":"'"${CLEAN_HOST}"'","path":"vless-grpc-virgozki","tls":"tls","sni":"'"${CLEAN_HOST}"'","fp":"chrome","alpn":"h2"}'
 VMESS_GRPC_B64=$(echo -n "$VMESS_GRPC_JSON" | base64 -w0)
 
 TROJAN_WS="trojan://virgozki@${CLEAN_HOST}:443?type=ws&path=/virgozki&host=${CLEAN_HOST}&security=tls&sni=${CLEAN_HOST}&alpn=http/1.1&fp=chrome#TROJAN-WS"
-TROJAN_HU="trojan://virgozki@${CLEAN_HOST}:443?type=httpupgrade&path=/virgozki-hu&host=${CLEAN_HOST}&security=tls&sni=${CLEAN_HOST}&alpn=http/1.1&fp=chrome#TROJAN-HU"
 TROJAN_XHTTP="trojan://virgozki@${CLEAN_HOST}:443?type=xhttp&path=/virgozki-xhttp&host=${CLEAN_HOST}&security=tls&sni=${CLEAN_HOST}&mode=stream-one&alpn=h2,http/1.1&fp=chrome#TROJAN-XHTTP"
 TROJAN_GRPC="trojan://virgozki@${CLEAN_HOST}:443?type=grpc&serviceName=trojan-grpc-virgozki&authority=${CLEAN_HOST}&security=tls&sni=${CLEAN_HOST}&alpn=h2&fp=chrome#TROJAN-GRPC"
 
-SS_WS="ss://${SS_B64}@${CLEAN_HOST}:443?plugin=v2ray-plugin&plugin=$(echo -n "tls;host=${CLEAN_HOST};path=/ss-virgozki;mode=ws" | jq -sRr @uri)&security=tls&sni=${CLEAN_HOST}#SHADOWSOCKS-WS"
-SS_XHTTP="ss://${SS_B64}@${CLEAN_HOST}:443?plugin=v2ray-plugin&plugin=$(echo -n "tls;host=${CLEAN_HOST};path=/ss-virgozki-xhttp;mode=xhttp;mode=stream-one" | jq -sRr @uri)&security=tls&sni=${CLEAN_HOST}#SHADOWSOCKS-XHTTP"
-SS_GRPC="ss://${SS_B64}@${CLEAN_HOST}:443?plugin=v2ray-plugin&plugin=$(echo -n "tls;host=${CLEAN_HOST};path=ss-grpc-virgozki;mode=grpc" | jq -sRr @uri)&security=tls&sni=${CLEAN_HOST}#SHADOWSOCKS-GRPC"
-
 echo ""
-echo -e "  ${GREEN}✅ DEPLOYED SUCCESSFULLY • REGION: ${MAGENTA}${REGION}${GREEN}${RESET}"
+echo -e "  ${GREEN}✅ DEPLOYED SUCCESSFULLY FROM DOCKER HUB • REGION: ${MAGENTA}${REGION}${GREEN}${RESET}"
 echo ""
 echo -e "  ${CYAN}DASHBOARD: ${GREEN}${SERVICE_URL}${RESET}"
 echo -e "  ${CYAN}HOST:      ${GREEN}${CLEAN_HOST}${RESET}"
 echo -e "  ${CYAN}PORT:      ${GREEN}443${RESET}"
 echo -e "  ${CYAN}PASSWORD:  ${GREEN}virgozki${RESET}"
 echo -e "  ${CYAN}MODE:      ${GREEN}${MODE} (${CPU} vCPU / ${RAM})${RESET}"
-echo ""
-
-echo -e "  ${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
-echo -e "  ${CYAN}        ALL PROTOCOLS (WS + HU + XHTTP + gRPC)${RESET}"
-echo -e "  ${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
-echo ""
-echo -e "  ${GREEN}✓ VLESS   ${CYAN}WS:${RESET} /vless-virgozki   ${GREEN}HU:${RESET} /vless-virgozki-hu   ${CYAN}XHTTP:${RESET} /vless-virgozki-xhttp   ${GREEN}gRPC:${RESET} vless-grpc-virgozki"
-echo -e "  ${GREEN}✓ VMESS   ${CYAN}WS:${RESET} /vmess-virgozki   ${GREEN}HU:${RESET} /vmess-virgozki-hu   ${CYAN}XHTTP:${RESET} /vmess-virgozki-xhttp   ${GREEN}gRPC:${RESET} vmess-grpc-virgozki"
-echo -e "  ${GREEN}✓ TROJAN  ${CYAN}WS:${RESET} /virgozki         ${GREEN}HU:${RESET} /virgozki-hu         ${CYAN}XHTTP:${RESET} /virgozki-xhttp         ${GREEN}gRPC:${RESET} trojan-grpc-virgozki"
-echo -e "  ${GREEN}✓ SS      ${CYAN}WS:${RESET} /ss-virgozki      ${GREEN}HU:${RESET} /ss-virgozki-hu      ${CYAN}XHTTP:${RESET} /ss-virgozki-xhttp      ${GREEN}gRPC:${RESET} ss-grpc-virgozki"
 echo ""
 echo -e "  ${YELLOW}🔗 READY-TO-USE LINKS:${RESET}"
 echo -e "  ${CYAN}VLESS XHTTP:  ${GREEN}${VLESS_XHTTP}${RESET}"
@@ -266,5 +239,5 @@ if [ -n "$GH_TOKEN" ]; then
     fi
 fi
 
-rm -f build.log deploy.log
-echo -e "\n  ${GREEN}✅ SCRIPT FINISHED SUCCESSFULLY WITH gRPC SUPPORT!${RESET}"
+rm -f deploy.log
+echo -e "\n  ${GREEN}✅ SCRIPT FINISHED SUCCESSFULLY!${RESET}"
