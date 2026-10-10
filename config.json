@@ -133,8 +133,8 @@
       "port": 10012, "listen": "127.0.0.1", "protocol": "vless", "tag": "vless-grpc",
       "settings": {"clients": [{"id": "b831381d-6324-4d53-ad4f-8cda48b30811"}], "decryption": "none"},
       "streamSettings": {
-        "network": "xhttp", "security": "none",
-        "xhttpSettings": {"path": "/vless-grpc-virgozki", "mode": "stream-up"}
+        "network": "grpc", "security": "none",
+        "grpcSettings": {"serviceName": "vless-grpc-virgozki"}
       },
       "sniffing": {"enabled": true, "destOverride": ["http", "tls"]}
     },
@@ -142,8 +142,8 @@
       "port": 10013, "listen": "127.0.0.1", "protocol": "vmess", "tag": "vmess-grpc",
       "settings": {"clients": [{"id": "b831381d-6324-4d53-ad4f-8cda48b30811", "alterId": 0}]},
       "streamSettings": {
-        "network": "xhttp", "security": "none",
-        "xhttpSettings": {"path": "/vmess-grpc-virgozki", "mode": "stream-up"}
+        "network": "grpc", "security": "none",
+        "grpcSettings": {"serviceName": "vmess-grpc-virgozki"}
       },
       "sniffing": {"enabled": true, "destOverride": ["http", "tls"]}
     },
@@ -151,8 +151,8 @@
       "port": 10014, "listen": "127.0.0.1", "protocol": "trojan", "tag": "trojan-grpc",
       "settings": {"clients": [{"password": "virgozki"}]},
       "streamSettings": {
-        "network": "xhttp", "security": "none",
-        "xhttpSettings": {"path": "/trojan-grpc-virgozki", "mode": "stream-up"}
+        "network": "grpc", "security": "none",
+        "grpcSettings": {"serviceName": "trojan-grpc-virgozki"}
       },
       "sniffing": {"enabled": true, "destOverride": ["http", "tls"]}
     },
@@ -160,8 +160,8 @@
       "port": 10015, "listen": "127.0.0.1", "protocol": "shadowsocks", "tag": "ss-grpc",
       "settings": {"method": "aes-256-gcm", "password": "virgozki"},
       "streamSettings": {
-        "network": "xhttp", "security": "none",
-        "xhttpSettings": {"path": "/ss-grpc-virgozki", "mode": "stream-up"}
+        "network": "grpc", "security": "none",
+        "grpcSettings": {"serviceName": "ss-grpc-virgozki"}
       },
       "sniffing": {"enabled": true, "destOverride": ["http", "tls"]}
     }
